@@ -259,11 +259,11 @@ class MTProxy
             return [
                 'result' => true,
                 'buffer' => $buffer,
-                'decrypt' => [
+                'encrypt' => [
                     'key' => hash("sha256", substr($keyIV, 0, 32) . $secret, true),
                     'iv' => substr($keyIV, 32, 16),
                 ],
-                'encrypt' => [
+                'decrypt' => [
                     'key' => hash("sha256", substr($this->reverseKey($keyIV), 0, 32) . $secret, true),
                     'iv' => substr($this->reverseKey($keyIV), 32, 16),
                 ]
