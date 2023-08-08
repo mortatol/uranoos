@@ -101,7 +101,7 @@ class MTProxy
                     $generateClientKeys['encrypt']['iv'],
                 );
 
-                $decryptedAuthPacket = $clientDecrypter->decrypt($data);
+                $decryptedAuthPacket = $clientDecrypter->encrypt($data);
                 $DCId = abs(unpack('s', substr($decryptedAuthPacket, 60, 2))[1]) - 1;
 
                 for ($i = 0; $i < 4; $i++) {
@@ -122,7 +122,7 @@ class MTProxy
                 $isInit = true;
             }
 
-            $payload = $clientDecrypter->decrypt($data);
+            $payload = $clientDecrypter->encrypt($data);
 
             if ($serverConnection == null) {
                 while (true) {
@@ -137,7 +137,7 @@ class MTProxy
                         $serverConnection['serverSocket']->on('data', function ($data) use (&$clientConnection, &$serverConnection, &$clientEncrypter) {
                             echo "new Data from server" . PHP_EOL;
                             if ($clientConnection->isWritable()) {
-                                $decryptedPacket = $serverConnection['serverDecrypter']->decrypt($data);
+                                $decryptedPacket = $serverConnection['serverDecrypter']->encrypt($data);
                                 $encryptedPacket = $clientEncrypter->encrypt($decryptedPacket);
 
                                 $isOk = $clientConnection->write($encryptedPacket);
