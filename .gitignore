@@ -1,0 +1,23 @@
+.DS_Store
+
+# IDEs
+.idea/
+.vscode/
+
+# Composer
+composer.lock
+vendor/
+
+# Cache
+logger.log
+.phpunit.result.cache
+.phpunit.cache
+
+# Passwords
+.env
+
+# Reports
+reports/
+
+testinterval*
+template.js
