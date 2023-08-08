@@ -53,10 +53,12 @@ class MTProxy
                 'error' => 'Already initialized'
             ];
 
-        $this->clientSocket = new TcpServer('0.0.0.0:' . $this->proxyPort, context: [
-            'so_reuseport' => true,
-            'tcp_nodelay' => true
-        ]);
+        $this->clientSocket = new TcpServer(
+            '0.0.0.0:' . $this->proxyPort,
+            context: [
+                'so_reuseport' => true,
+            ]
+        );
 
         $this->clientSocket->on("connection", [$this, "onClientNewConnection"]);
         $this->clientSocket->on("error", function () {
