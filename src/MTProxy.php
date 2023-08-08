@@ -261,10 +261,8 @@ class MTProxy
                     'iv' => substr($keyIV, 32, 16),
                 ],
                 'decrypt' => [
-                    'key' => substr($keyIV, 0, 32),
-                    'iv' => substr($keyIV, 32, 16),
-//                    'key' => substr(strrev($keyIV), 0, 32),
-//                    'iv' => substr(strrev($keyIV), 32, 16),
+                    'key' => substr(strrev($keyIV), 0, 32),
+                    'iv' => substr(strrev($keyIV), 32, 16),
                 ]
             ];
         } catch (\Exception $e) {
@@ -289,10 +287,8 @@ class MTProxy
                     'iv' => substr($keyIV, 32, 16),
                 ],
                 'encrypt' => [
-                    'key' => hash("sha256", substr($keyIV, 0, 32) . $secret, true),
-                    'iv' => substr($keyIV, 32, 16),
-//                    'key' => hash("sha256", substr(strrev($keyIV), 0, 32) . $secret, true),
-//                    'iv' => substr(strrev($keyIV), 32, 16),
+                    'key' => hash("sha256", substr(strrev($keyIV), 0, 32) . $secret, true),
+                    'iv' => substr(strrev($keyIV), 32, 16),
                 ]
             ];
         } catch (\Exception $e) {
