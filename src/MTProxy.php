@@ -256,7 +256,8 @@ class MTProxy
                 $buffer = $this->generateRandomBuffer();
             }
 
-            $randomBytes[56] = $randomBytes[57] = $randomBytes[58] = $randomBytes[59] = hex2bin('EF');
+            $buffer[56] = $buffer[57] = $buffer[58] = $buffer[59] = hex2bin('EF');
+
 
             $keyIV = substr($buffer, 8, 48);
 
