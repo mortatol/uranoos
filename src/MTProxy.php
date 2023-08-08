@@ -105,18 +105,21 @@ class MTProxy
                 $DCId = abs(unpack('s', substr($decryptedAuthPacket, 60, 2))[1]) - 1;
 
                 for ($i = 0; $i < 4; $i++) {
-                    if (ord($decryptedAuthPacket[56 + $i]) !== 0xef) {
+                    // TODO: here
+                    if ($decryptedAuthPacket[56 + $i] != 0xef) {
+                        echo "****** Client Destroyed Line 110" . PHP_EOL;
                         $clientConnection->close();
                         return;
                     }
                 }
 
                 if ($DCId > 4 || $DCId < 0) {
+                    echo "****** Client Destroyed Cause DCID not in range" . PHP_EOL;
                     $clientConnection->end();
                     return;
                 }
 
-                echo "Waanaa Connect on DataCenter $DCId " . PHP_EOL;
+                echo "Connect on DataCenter $DCId " . PHP_EOL;
 
                 $data = substr($data, 64);
                 $isInit = true;
@@ -127,11 +130,12 @@ class MTProxy
             if ($serverConnection == null) {
                 while (true) {
                     $serverConnection = $this->getIdleTelegramSocket($DCId);
-                    if ($serverConnection == null)
+                    if ($serverConnection == null) {
                         break;
+                    }
 
                     if (!$serverConnection['serverSocket']->isWritable()) {
-                        echo "Server is not writeable" . PHP_EOL;
+                        echo "** Server is not writeable" . PHP_EOL;
                         $serverConnection = null;
                     } else {
                         $serverConnection['serverSocket']->on('data', function ($data) use (&$clientConnection, &$serverConnection, &$clientEncrypter) {
