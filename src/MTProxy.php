@@ -89,7 +89,7 @@ class MTProxy
                 }
 
                 $binariesSecret = hex2bin($this->proxySecret);
-                $generateClientKeys = $this->generateKeyIVPair($data, $binariesSecret,true);
+                $generateClientKeys = $this->generateKeyIVPairClient($data, $binariesSecret);
 
                 $clientDecrypter = new AESHelper(
                     $generateClientKeys['decrypt']['key'],
@@ -193,7 +193,7 @@ class MTProxy
 
         $connector->connect($this->telegramServerURLs[$dc])
             ->then(function (React\Socket\ConnectionInterface $connection) use ($dc) {
-                $generatedKeyPair = $this->generateKeyIVPair();
+                $generatedKeyPair = $this->generateKeyIVPairServer();
 
                 $serverDecrypter = new AESHelper(
                     $generatedKeyPair['decrypt']['key'],
@@ -206,7 +206,6 @@ class MTProxy
                 );
 
                 $encryptedPacket = $serverEncrypter->encrypt($generatedKeyPair['buffer']);
-
                 $encryptedPacket = substr_replace($encryptedPacket, $generatedKeyPair['buffer'], 0, 56);
 
                 if (!$connection->write($encryptedPacket)) {
@@ -239,20 +238,15 @@ class MTProxy
         return $idleConnection;
     }
 
-    protected function generateKeyIVPair($buffer = null, $secret = null, $sha = false): array
+    protected function generateKeyIVPairServer(): array
     {
-        if ($secret == null)
-            $secret = '';
-
         try {
-            if ($buffer == null) {
+            $buffer = $this->generateRandomBuffer();
+            while (!$this->checkBuffer($buffer)) {
                 $buffer = $this->generateRandomBuffer();
-                while (!$this->checkBuffer($buffer)) {
-                    $buffer = $this->generateRandomBuffer();
-                }
-
-                $randomBytes[56] = $randomBytes[57] = $randomBytes[58] = $randomBytes[59] = hex2bin('EF');
             }
+
+            $randomBytes[56] = $randomBytes[57] = $randomBytes[58] = $randomBytes[59] = hex2bin('EF');
 
             $keyIV = substr($buffer, 8, 48);
 
@@ -260,17 +254,37 @@ class MTProxy
                 'result' => true,
                 'buffer' => $buffer,
                 'encrypt' => [
-                    'key' => $sha
-                        ? hash("sha256", substr($keyIV, 0, 32) . $secret, true)
-                        : substr($keyIV, 0, 32) . $secret
-                    ,
+                    'key' => substr($keyIV, 0, 32),
                     'iv' => substr($keyIV, 32, 16),
                 ],
                 'decrypt' => [
-                    'key' => $sha
-                        ? hash("sha256", substr(strrev($keyIV), 0, 32) . $secret, true)
-                        : substr(strrev($keyIV), 0, 32) . $secret
-                    ,
+                    'key' => substr(strrev($keyIV), 0, 32),
+                    'iv' => substr(strrev($keyIV), 32, 16),
+                ]
+            ];
+        } catch (\Exception $e) {
+            return [
+                'result' => false,
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+
+    protected function generateKeyIVPairClient($buffer, $secret): array
+    {
+        try {
+            $buffer = substr($buffer, 0, 64);
+            $keyIV = substr($buffer, 8, 48);
+
+            return [
+                'result' => true,
+                'buffer' => $buffer,
+                'decrypt' => [
+                    'key' => hash("sha256", substr($keyIV, 0, 32) . $secret, true),
+                    'iv' => substr($keyIV, 32, 16),
+                ],
+                'encrypt' => [
+                    'key' => hash("sha256", substr(strrev($keyIV), 0, 32) . $secret, true),
                     'iv' => substr(strrev($keyIV), 32, 16),
                 ]
             ];
