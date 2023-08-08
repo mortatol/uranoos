@@ -107,7 +107,7 @@ class MTProxy
                     $generateClientKeys['encrypt']['iv'],
                 );
 
-                $decryptedAuthPacket = $clientDecrypter->encrypt($data);
+                $decryptedAuthPacket = $clientDecrypter->decrypt($data);
                 $DCId = abs(unpack('s', substr($decryptedAuthPacket, 60, 2))[1]) - 1;
 
                 for ($i = 0; $i < 4; $i++) {
@@ -131,7 +131,7 @@ class MTProxy
                 $connId = rand(10000,99999);
             }
 
-            $payload = $clientDecrypter->encrypt($data);
+            $payload = $clientDecrypter->decrypt($data);
 
             if ($serverConnection == null) {
                 while (true) {
@@ -147,8 +147,8 @@ class MTProxy
                         $serverConnection['serverSocket']->on('data', function ($data) use (&$clientConnection, &$serverConnection, &$clientEncrypter) {
                             echo "new Data from server" . PHP_EOL;
                             if ($clientConnection->isWritable()) {
-                                $decryptedPacket = $serverConnection['serverDecrypter']->encrypt($data);
-                                $encryptedPacket = $clientEncrypter->encrypt($decryptedPacket);
+                                $decryptedPacket = $serverConnection['serverDecrypter']->decrypt($data);
+                                $encryptedPacket = $clientEncrypter->decrypt($decryptedPacket);
 
                                 $isOk = $clientConnection->write($encryptedPacket);
                                 echo "Write on Client is " . intval($isOk) . PHP_EOL;
@@ -182,7 +182,7 @@ class MTProxy
                 }
             }
 
-            $encryptedPayload = $serverConnection['serverEncrypter']->encrypt($payload);
+            $encryptedPayload = $serverConnection['serverEncrypter']->decrypt($payload);
             if ($serverConnection['serverSocket']->isWritable()) {
                 $isOk = $serverConnection['serverSocket']->write($encryptedPayload);
                 echo "Write on server is " . intval($isOk) . PHP_EOL;
@@ -215,7 +215,7 @@ class MTProxy
                     $generatedKeyPair['encrypt']['iv'],
                 );
 
-                $encryptedPacket = $serverEncrypter->encrypt($generatedKeyPair['buffer']);
+                $encryptedPacket = $serverEncrypter->decrypt($generatedKeyPair['buffer']);
                 $encryptedPacket = substr_replace($encryptedPacket, $generatedKeyPair['buffer'], 0, 56);
 
                 if (!$connection->write($encryptedPacket)) {
