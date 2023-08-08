@@ -106,7 +106,7 @@ class MTProxy
 
                 for ($i = 0; $i < 4; $i++) {
                     // TODO: here
-                    if ($decryptedAuthPacket[56 + $i] != 0xef) {
+                    if (bin2hex($decryptedAuthPacket[56 + $i]) != "ef") {
                         echo "****** Client Destroyed Line 110" . "      " . bin2hex($decryptedAuthPacket[56 + $i]) . PHP_EOL;
                         $clientConnection->close();
                         return;
