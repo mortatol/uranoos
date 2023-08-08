@@ -108,6 +108,7 @@ class MTProxy
                 );
 
                 $decryptedAuthPacket = $clientDecrypter->decrypt($data);
+                echo $decryptedAuthPacket;
                 $DCId = abs(unpack('s', substr($decryptedAuthPacket, 60, 2))[1]) - 1;
 
                 for ($i = 0; $i < 4; $i++) {
@@ -257,7 +258,6 @@ class MTProxy
             }
 
             $buffer[56] = $buffer[57] = $buffer[58] = $buffer[59] = hex2bin('EF');
-
 
             $keyIV = substr($buffer, 8, 48);
 

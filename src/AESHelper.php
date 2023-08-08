@@ -14,12 +14,11 @@ class AESHelper
 
     public function encrypt(string $message): bool|string
     {
-        // todo maybe bin2hex
-        return openssl_encrypt($message, $this->method, $this->key, OPENSSL_RAW_DATA, $this->iv);
+        return openssl_encrypt($message, $this->method, $this->key, OPENSSL_NO_PADDING, $this->iv);
     }
 
     public function decrypt(string $message): bool|string
     {
-        return openssl_decrypt($message, $this->method, $this->key, OPENSSL_RAW_DATA, $this->iv);
+        return openssl_decrypt($message, $this->method, $this->key, OPENSSL_NO_PADDING, $this->iv);
     }
 }
