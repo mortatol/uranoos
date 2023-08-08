@@ -81,8 +81,8 @@ class MTProxy
         $clientEncrypter = null;
         $DCId = null;
 
-        $clientConnection->on('data', function ($data) use (&$clientConnection, &$isInit, &$serverConnection, &$clientDecrypter, &$clientEncrypter, &$DCId,&$connId) {
-            echo sprintf("New Data Received With %s Len Data and %s init ConnID %s status\n", strlen($data),$connId, intval($isInit));
+        $clientConnection->on('data', function ($data) use (&$clientConnection, &$isInit, &$serverConnection, &$clientDecrypter, &$clientEncrypter, &$DCId, &$connId) {
+            echo sprintf("New Data Received With %s Len Data and %s init ConnID %s status\n", strlen($data), $connId, intval($isInit));
             if (!$isInit) {
                 if (strlen($data) == 41 || strlen($data) == 56) {
                     $clientConnection->close();
@@ -128,7 +128,7 @@ class MTProxy
 
                 $data = substr($data, 64);
                 $isInit = true;
-                $connId = rand(10000,99999);
+                $connId = rand(10000, 99999);
             }
 
             $payload = $clientDecrypter->decrypt($data);
@@ -148,7 +148,7 @@ class MTProxy
                             echo "new Data from server" . PHP_EOL;
                             if ($clientConnection->isWritable()) {
                                 $decryptedPacket = $serverConnection['serverDecrypter']->decrypt($data);
-                                $encryptedPacket = $clientEncrypter->decrypt($decryptedPacket);
+                                $encryptedPacket = $clientEncrypter->encrypt($decryptedPacket);
 
                                 $isOk = $clientConnection->write($encryptedPacket);
                                 echo "Write on Client is " . intval($isOk) . PHP_EOL;
@@ -182,7 +182,7 @@ class MTProxy
                 }
             }
 
-            $encryptedPayload = $serverConnection['serverEncrypter']->decrypt($payload);
+            $encryptedPayload = $serverConnection['serverEncrypter']->encrypt($payload);
             if ($serverConnection['serverSocket']->isWritable()) {
                 $isOk = $serverConnection['serverSocket']->write($encryptedPayload);
                 echo "Write on server is " . intval($isOk) . PHP_EOL;
@@ -215,7 +215,7 @@ class MTProxy
                     $generatedKeyPair['encrypt']['iv'],
                 );
 
-                $encryptedPacket = $serverEncrypter->decrypt($generatedKeyPair['buffer']);
+                $encryptedPacket = $serverEncrypter->encrypt($generatedKeyPair['buffer']);
                 $encryptedPacket = substr_replace($encryptedPacket, $generatedKeyPair['buffer'], 0, 56);
 
                 if (!$connection->write($encryptedPacket)) {
