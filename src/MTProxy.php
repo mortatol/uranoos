@@ -264,8 +264,8 @@ class MTProxy
                     'iv' => substr($keyIV, 32, 16),
                 ],
                 'decrypt' => [
-                    'key' => hash("sha256", substr($this->reverseKey($keyIV), 0, 32) . $secret, true),
-                    'iv' => substr($this->reverseKey($keyIV), 32, 16),
+                    'key' => hash("sha256", substr(strrev($keyIV), 0, 32) . $secret, true),
+                    'iv' => substr(strrev($keyIV), 32, 16),
                 ]
             ];
         } catch (\Exception $e) {
