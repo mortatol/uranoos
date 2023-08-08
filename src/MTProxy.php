@@ -9,7 +9,7 @@ use React\Socket\TcpServer;
 
 class MTProxy
 {
-    protected ?TcpServer $clientSocket = null;
+    protected ?React\Socket\SocketServer $clientSocket = null;
 
     protected array $telegramServerURLs = [
         0 => "149.154.175.50:443",
@@ -53,7 +53,7 @@ class MTProxy
                 'error' => 'Already initialized'
             ];
 
-        $this->clientSocket = new React\Socket\TcpServer('0.0.0.0:' . $this->proxyPort);
+        $this->clientSocket = new React\Socket\SocketServer('0.0.0.0:' . $this->proxyPort);
 
         $this->clientSocket->on("connection", [$this, "onClientNewConnection"]);
         $this->clientSocket->on("error", function () {
@@ -105,9 +105,8 @@ class MTProxy
                 $DCId = abs(unpack('s', substr($decryptedAuthPacket, 60, 2))[1]) - 1;
 
                 for ($i = 0; $i < 4; $i++) {
-                    // TODO: here
                     if (bin2hex($decryptedAuthPacket[56 + $i]) != "ef") {
-                        echo "****** Client Destroyed Line 110" . "      " . bin2hex($decryptedAuthPacket[56 + $i]) . PHP_EOL;
+                        echo "****** Client Destroyed Line 110";
                         $clientConnection->close();
                         return;
                     }
