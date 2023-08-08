@@ -89,7 +89,7 @@ class MTProxy
                 }
 
                 $binariesSecret = hex2bin($this->proxySecret);
-                $generateClientKeys = $this->generateKeyIVPair($data, $binariesSecret);
+                $generateClientKeys = $this->generateKeyIVPair($data, $binariesSecret,true);
 
                 $clientDecrypter = new AESHelper(
                     $generateClientKeys['decrypt']['key'],
@@ -239,7 +239,7 @@ class MTProxy
         return $idleConnection;
     }
 
-    protected function generateKeyIVPair($buffer = null, $secret = null): array
+    protected function generateKeyIVPair($buffer = null, $secret = null, $sha = false): array
     {
         if ($secret == null)
             $secret = '';
@@ -260,11 +260,17 @@ class MTProxy
                 'result' => true,
                 'buffer' => $buffer,
                 'encrypt' => [
-                    'key' => hash("sha256", substr($keyIV, 0, 32) . $secret, true),
+                    'key' => $sha
+                        ? hash("sha256", substr($keyIV, 0, 32) . $secret, true)
+                        : substr($keyIV, 0, 32) . $secret
+                    ,
                     'iv' => substr($keyIV, 32, 16),
                 ],
                 'decrypt' => [
-                    'key' => hash("sha256", substr(strrev($keyIV), 0, 32) . $secret, true),
+                    'key' => $sha
+                        ? hash("sha256", substr(strrev($keyIV), 0, 32) . $secret, true)
+                        : substr(strrev($keyIV), 0, 32) . $secret
+                    ,
                     'iv' => substr(strrev($keyIV), 32, 16),
                 ]
             ];
