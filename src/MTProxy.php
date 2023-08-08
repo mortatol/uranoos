@@ -245,27 +245,14 @@ class MTProxy
             $secret = '';
 
         try {
-            if ($buffer == null)
-                $buffer = random_bytes(64);
-
-            /*
-             * Temperary Disable That
-                while (true) {
-                    $val = (ord($buf64[3]) << 24) | (ord($buf64[2]) << 16) | (ord($buf64[1]) << 8) | ord($buf64[0]);
-                    $val2 = (ord($buf64[7]) << 24) | (ord($buf64[6]) << 16) | (ord($buf64[5]) << 8) | ord($buf64[4]);
-
-                    if ($buf64[0] != 0xef &&
-                        $val != 0x44414548 &&
-                        $val != 0x54534f50 &&
-                        $val != 0x20544547 &&
-                        $val != 0x4954504f &&
-                        $val != 0xeeeeeeee &&
-                        $val2 != 0x00000000) {
-                        $buf64[56] = $buf64[57] = $buf64[58] = $buf64[59] = 0xef;
-                        break;
-                    }
+            if ($buffer == null) {
+                $buffer = $this->generateRandomBuffer();
+                while (!$this->checkBuffer($buffer)) {
+                    $buffer = $this->generateRandomBuffer();
                 }
-            */
+
+                $randomBytes[56] = $randomBytes[57] = $randomBytes[58] = $randomBytes[59] = hex2bin('EF');
+            }
 
             $keyIV = substr($buffer, 8, 48);
 
@@ -299,5 +286,21 @@ class MTProxy
         }
         return $binaryString;
     }
+
+    protected function generateRandomBuffer(): string
+    {
+        $randomBytes = random_bytes(64);
+        return $randomBytes;
+    }
+
+    protected function checkBuffer($randomBytes): bool
+    {
+        $firstByte = $randomBytes[0];
+        $val = (ord($randomBytes[3]) << 24) | (ord($randomBytes[2]) << 16) | (ord($randomBytes[1]) << 8) | ord($randomBytes[0]);
+        $val2 = (ord($randomBytes[7]) << 24) | (ord($randomBytes[6]) << 16) | (ord($randomBytes[5]) << 8) | ord($randomBytes[4]);
+
+        return ($firstByte != 0xef) && ($val != 0x44414548) && ($val != 0x54534f50) && ($val != 0x20544547) && ($val != 0x4954504f) && ($val != 0xeeeeeeee) && ($val2 != 0x00000000);
+    }
+
 
 }
