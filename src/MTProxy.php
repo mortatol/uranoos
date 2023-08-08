@@ -9,7 +9,7 @@ use React\Socket\TcpServer;
 
 class MTProxy
 {
-    protected ?React\Socket\SocketServer $clientSocket = null;
+    protected ?TcpServer $clientSocket = null;
 
     protected array $telegramServerURLs = [
         0 => "149.154.175.50:443",
@@ -53,7 +53,7 @@ class MTProxy
                 'error' => 'Already initialized'
             ];
 
-        $this->clientSocket = new React\Socket\SocketServer('0.0.0.0:' . $this->proxyPort);
+        $this->clientSocket = new React\Socket\TcpServer('0.0.0.0:' . $this->proxyPort);
 
         $this->clientSocket->on("connection", [$this, "onClientNewConnection"]);
         $this->clientSocket->on("error", function () {
