@@ -127,8 +127,8 @@ class MTProxy
                 echo "Connect on DataCenter $DCId " . PHP_EOL;
 
                 $data = substr($data, 64);
-                $isInit = true;
                 $connId = rand(10000, 99999);
+                $isInit = true;
             }
 
             $payload = $clientDecrypter->encrypt($data);
@@ -144,13 +144,15 @@ class MTProxy
                         echo "** Server is not writeable" . PHP_EOL;
                         $serverConnection = null;
                     } else {
+//                        $serverConnection['serverSocket']->write(bin2hex("ef"));
                         $serverConnection['serverSocket']->on('data', function ($data) use (&$clientConnection, &$serverConnection, &$clientEncrypter) {
-                            echo "new Data from server" . PHP_EOL;
+//                            echo bin2hex($data).PHP_EOL;
+//                            echo "new Data from server" . PHP_EOL;
                             if ($clientConnection->isWritable()) {
                                 $decryptedPacket = $serverConnection['serverDecrypter']->encrypt($data);
                                 $encryptedPacket = $clientEncrypter->encrypt($decryptedPacket);
 
-                                $isOk = $clientConnection->write($encryptedPacket);
+                                $isOk = $clientConnection->write($data);
                                 echo "Write on Client is " . intval($isOk) . PHP_EOL;
                             } else {
                                 echo "Client Not Writable" . PHP_EOL;
@@ -182,7 +184,9 @@ class MTProxy
                 }
             }
 
+            echo bin2hex($payload).PHP_EOL;
             $encryptedPayload = $serverConnection['serverEncrypter']->encrypt($payload);
+            echo bin2hex($encryptedPayload).PHP_EOL;
             if ($serverConnection['serverSocket']->isWritable()) {
                 $isOk = $serverConnection['serverSocket']->write($encryptedPayload);
                 echo "Write on server is " . intval($isOk) . PHP_EOL;
