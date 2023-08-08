@@ -320,7 +320,6 @@ class MTProxy
 
     protected function generateRandomBuffer(): string
     {
-        return hex2bin("51532b4a435502b9db2803f6eb0fb007a8b3c5a58a2bba1299f1284fb6458c0f0f96a000a7845d0b1f66f5d0ab25df74d54c1d203d04952fefefefefc5258788");
         $randomBytes = random_bytes(64);
         return $randomBytes;
     }
