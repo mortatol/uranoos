@@ -215,8 +215,11 @@ class MTProxy
                     $generatedKeyPair['encrypt']['iv'],
                 );
 
+//                echo bin2hex($generatedKeyPair['buffer']).PHP_EOL;
                 $encryptedPacket = $serverEncrypter->encrypt($generatedKeyPair['buffer']);
-                $encryptedPacket = substr_replace($encryptedPacket, $generatedKeyPair['buffer'], 0, 56);
+//                echo bin2hex($encryptedPacket).PHP_EOL;
+                $encryptedPacket = substr_replace($generatedKeyPair['buffer'],$encryptedPacket, 0, 128);
+//                echo bin2hex($encryptedPacket).PHP_EOL.PHP_EOL;
 
                 if (!$connection->write($encryptedPacket)) {
                     $connection->close();
