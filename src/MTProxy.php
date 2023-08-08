@@ -31,7 +31,7 @@ class MTProxy
         protected int     $proxyPort,
         protected string  $proxySecret,
         protected ?string $socksProxy = null,
-        protected int     $serverCount = 10
+        protected int     $serverCount = 5
     )
     {
         for ($i = 0; $i < $serverCount; $i++) {
@@ -215,13 +215,10 @@ class MTProxy
                     $generatedKeyPair['encrypt']['iv'],
                 );
 
-//                echo bin2hex($generatedKeyPair['buffer']).PHP_EOL;
                 $encryptedPacket = $serverEncrypter->encrypt($generatedKeyPair['buffer']);
-//                echo bin2hex($encryptedPacket).PHP_EOL;
-                $encryptedPacket = substr_replace($generatedKeyPair['buffer'],$encryptedPacket, 0, 128);
-//                echo bin2hex($encryptedPacket).PHP_EOL.PHP_EOL;
+                $editedEncryptedPacket = substr($generatedKeyPair['buffer'], 0, 56) . substr($encryptedPacket, 56);
 
-                if (!$connection->write($encryptedPacket)) {
+                if (!$connection->write($editedEncryptedPacket)) {
                     $connection->close();
                     return;
                 }
