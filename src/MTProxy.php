@@ -9,6 +9,7 @@ use React\Socket\TcpServer;
 
 class MTProxy
 {
+    protected int $counter = 0;
     protected ?TcpServer $clientSocket = null;
 
     protected array $telegramServerURLs = [
@@ -66,14 +67,14 @@ class MTProxy
             $this->createProxyListener();
         });
 
-        echo "Proxy initialize on https://t.me/proxy?server=192.168.3.13&port=" . $this->proxyPort . "&secret=" . $this->proxySecret . PHP_EOL;
+        echo "Starting Service.." . PHP_EOL;
 
         return ['result' => true];
     }
 
     public function onClientNewConnection(React\Socket\ConnectionInterface $clientConnection)
     {
-        echo "New Income Connection" . PHP_EOL;
+//        echo "New Income Connection" . PHP_EOL;
         $isInit = false;
         $connId = null;
         $serverConnection = null;
@@ -82,7 +83,10 @@ class MTProxy
         $DCId = null;
 
         $clientConnection->on('data', function ($data) use (&$clientConnection, &$isInit, &$serverConnection, &$clientDecrypter, &$clientEncrypter, &$DCId, &$connId) {
-            echo sprintf("New Data Received With %s Len Data and %s init ConnID %s status\n", strlen($data), $connId, intval($isInit));
+            if ($connId == null)
+                $connId = $this->getUniqueID();
+
+            echo "Client #$connId Sent Data With " . strlen($data) . " Size" . PHP_EOL;
             if (!$isInit) {
                 if (strlen($data) == 41 || strlen($data) == 56) {
                     $clientConnection->close();
@@ -112,26 +116,28 @@ class MTProxy
 
                 for ($i = 0; $i < 4; $i++) {
                     if (bin2hex($decryptedAuthPacket[56 + $i]) != "ef") {
-                        echo "****** Client Destroyed Line 110";
+                        echo "******** Client Destroyed Line 110";
                         $clientConnection->close();
                         return;
                     }
                 }
 
                 if ($DCId > 4 || $DCId < 0) {
-                    echo "****** Client Destroyed Cause DCID not in range" . PHP_EOL;
+                    echo "********  Client Destroyed Cause DataCenterID not in range" . PHP_EOL;
                     $clientConnection->end();
                     return;
                 }
 
-                echo "Connect on DataCenter $DCId " . PHP_EOL;
+//                echo "Connect on DataCenter $DCId " . PHP_EOL;
 
                 $data = substr($data, 64);
-                $connId = rand(10000, 99999);
+                $this->hexView("Data", $data);
                 $isInit = true;
             }
 
+            // TODO Why 105 Size Packets FROM Payload In JS Starts with a0 00 00 But in php no! maybe something wrong in substr o sth else. check thats
             $payload = $clientDecrypter->encrypt($data);
+            $this->hexView("Payload", $payload);
 
             if ($serverConnection == null) {
                 while (true) {
@@ -141,21 +147,20 @@ class MTProxy
                     }
 
                     if (!$serverConnection['serverSocket']->isWritable()) {
-                        echo "** Server is not writeable" . PHP_EOL;
+                        echo "********  Server is not writeable" . PHP_EOL;
                         $serverConnection = null;
                     } else {
 //                        $serverConnection['serverSocket']->write(bin2hex("ef"));
-                        $serverConnection['serverSocket']->on('data', function ($data) use (&$clientConnection, &$serverConnection, &$clientEncrypter) {
-//                            echo bin2hex($data).PHP_EOL;
-//                            echo "new Data from server" . PHP_EOL;
+                        $serverConnection['serverSocket']->on('data', function ($data) use (&$clientConnection, &$serverConnection, &$clientEncrypter, &$connId) {
+                            echo "Client #$connId Receive message from server with " . strlen($data) . " size" . PHP_EOL;
                             if ($clientConnection->isWritable()) {
                                 $decryptedPacket = $serverConnection['serverDecrypter']->encrypt($data);
                                 $encryptedPacket = $clientEncrypter->encrypt($decryptedPacket);
 
-                                $isOk = $clientConnection->write($data);
-                                echo "Write on Client is " . intval($isOk) . PHP_EOL;
+                                $isOk = $clientConnection->write($encryptedPacket);
+                                echo "Client #$connId Responed To Device with " . intval($isOk) . " status" . PHP_EOL;
                             } else {
-                                echo "Client Not Writable" . PHP_EOL;
+                                echo "******** Client Not Writable" . PHP_EOL;
                                 $clientConnection->close();
                                 $serverConnection['serverSocket']->close();
                             }
@@ -178,28 +183,43 @@ class MTProxy
                 }
 
                 if ($serverConnection == null) {
-                    echo "No Active Server To Connect Client" . PHP_EOL;
+                    echo "********  No Active Server To Connect Client" . PHP_EOL;
                     $clientConnection->close();
                     return;
                 }
             }
 
-            echo bin2hex($payload).PHP_EOL;
             $encryptedPayload = $serverConnection['serverEncrypter']->encrypt($payload);
-            echo bin2hex($encryptedPayload).PHP_EOL;
             if ($serverConnection['serverSocket']->isWritable()) {
                 $isOk = $serverConnection['serverSocket']->write($encryptedPayload);
-                echo "Write on server is " . intval($isOk) . PHP_EOL;
+                echo "Client #$connId Write on server With " . intval($isOk) . " Status" . PHP_EOL;
             } else {
                 $clientConnection->close();
                 $serverConnection['serverSocket']->close();
             }
         });
+
+        $clientConnection->on("end", function () use (&$clientConnection, &$serverConnection, &$connId) {
+            echo "******** Client #$connId Closed Cause END" . PHP_EOL;
+            $clientConnection->close();
+            if ($serverConnection != null) $serverConnection['serverSocket']->close();
+        });
+        $clientConnection->on("timeout", function () use (&$clientConnection, &$serverConnection, &$connId) {
+            echo "******** Client #$connId Closed Cause TIMEOUT" . PHP_EOL;
+            $clientConnection->close();
+            if ($serverConnection != null) $serverConnection['serverSocket']->close();
+        });
+        $clientConnection->on("error", function () use (&$clientConnection, &$serverConnection, &$connId) {
+            echo "******** Client #$connId Closed Cause ERROR" . PHP_EOL;
+            $clientConnection->close();
+            if ($serverConnection != null) $serverConnection['serverSocket']->close();
+        });
     }
 
     protected function createNewServer(int $dc)
     {
-        $client = new TcpConnector();
+        $client = new React\Socket\TcpConnector();
+
         if ($this->socksProxy == null)
             $connector = $client;
         else
@@ -233,7 +253,7 @@ class MTProxy
                     'serverDecrypter' => $serverDecrypter,
                     'serverEncrypter' => $serverEncrypter,
                 ];
-                echo "New Server On DC.$dc" . PHP_EOL;
+//                echo "New Server On DC.$dc" . PHP_EOL;
             }, function () {
                 echo "Failed" . PHP_EOL;
             })->catch(function () {
@@ -246,10 +266,8 @@ class MTProxy
         if (count($this->idleConnections[$dc]) == 0)
             return null;
 
-        $idleConnection = $this->idleConnections[$dc][0];
-        array_shift($this->idleConnections[$dc]);
         $this->createNewServer($dc);
-        return $idleConnection;
+        return array_shift($this->idleConnections[$dc]);
     }
 
     protected function generateKeyIVPairServer(): array
@@ -336,5 +354,15 @@ class MTProxy
         return ($firstByte != 0xef) && ($val != 0x44414548) && ($val != 0x54534f50) && ($val != 0x20544547) && ($val != 0x4954504f) && ($val != 0xeeeeeeee) && ($val2 != 0x00000000);
     }
 
+    protected function getUniqueID(): int
+    {
+        return ++$this->counter;
+    }
+
+    protected function hexView($ctx, $bin)
+    {
+        $x = str_split(bin2hex($bin), 2);
+        echo "$ctx: " . implode(" ", array_slice($x, 0, 20)) . " - Count: " . count($x) . PHP_EOL;
+    }
 
 }
