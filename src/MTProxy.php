@@ -111,7 +111,7 @@ class MTProxy
                     $generateClientKeys['encrypt']['iv'],
                 );
 
-                $decryptedAuthPacket = $clientDecrypter->encrypt($data);
+                $decryptedAuthPacket = $clientDecrypter->update($generateClientKeys['buffer']);
                 $DCId = abs(unpack('s', substr($decryptedAuthPacket, 60, 2))[1]) - 1;
 
                 for ($i = 0; $i < 4; $i++) {
@@ -128,16 +128,16 @@ class MTProxy
                     return;
                 }
 
-//                echo "Connect on DataCenter $DCId " . PHP_EOL;
+                echo "Connect on DataCenter $DCId " . PHP_EOL;
 
                 $data = substr($data, 64);
-                $this->hexView("Data", $data);
+//                $this->hexView("Data       ", $data);
                 $isInit = true;
             }
 
             // TODO Why 105 Size Packets FROM Payload In JS Starts with a0 00 00 But in php no! maybe something wrong in substr o sth else. check thats
-            $payload = $clientDecrypter->encrypt($data);
-            $this->hexView("Payload", $payload);
+            $payload = $clientDecrypter->update($data);
+//            $this->hexView("Payload:   ", $payload);
 
             if ($serverConnection == null) {
                 while (true) {
@@ -154,8 +154,8 @@ class MTProxy
                         $serverConnection['serverSocket']->on('data', function ($data) use (&$clientConnection, &$serverConnection, &$clientEncrypter, &$connId) {
                             echo "Client #$connId Receive message from server with " . strlen($data) . " size" . PHP_EOL;
                             if ($clientConnection->isWritable()) {
-                                $decryptedPacket = $serverConnection['serverDecrypter']->encrypt($data);
-                                $encryptedPacket = $clientEncrypter->encrypt($decryptedPacket);
+                                $decryptedPacket = $serverConnection['serverDecrypter']->update($data);
+                                $encryptedPacket = $clientEncrypter->update($decryptedPacket);
 
                                 $isOk = $clientConnection->write($encryptedPacket);
                                 echo "Client #$connId Responed To Device with " . intval($isOk) . " status" . PHP_EOL;
@@ -189,7 +189,7 @@ class MTProxy
                 }
             }
 
-            $encryptedPayload = $serverConnection['serverEncrypter']->encrypt($payload);
+            $encryptedPayload = $serverConnection['serverEncrypter']->update($payload);
             if ($serverConnection['serverSocket']->isWritable()) {
                 $isOk = $serverConnection['serverSocket']->write($encryptedPayload);
                 echo "Client #$connId Write on server With " . intval($isOk) . " Status" . PHP_EOL;
@@ -239,7 +239,7 @@ class MTProxy
                     $generatedKeyPair['encrypt']['iv'],
                 );
 
-                $encryptedPacket = $serverEncrypter->encrypt($generatedKeyPair['buffer']);
+                $encryptedPacket = $serverEncrypter->update($generatedKeyPair['buffer']);
                 $editedEncryptedPacket = substr($generatedKeyPair['buffer'], 0, 56) . substr($encryptedPacket, 56);
 
                 if (!$connection->write($editedEncryptedPacket)) {
@@ -359,10 +359,13 @@ class MTProxy
         return ++$this->counter;
     }
 
-    protected function hexView($ctx, $bin)
+    protected function hexView($ctx, $bin, $unlimit = false)
     {
         $x = str_split(bin2hex($bin), 2);
-        echo "$ctx: " . implode(" ", array_slice($x, 0, 20)) . " - Count: " . count($x) . PHP_EOL;
+        if ($unlimit)
+            echo "$ctx: " . implode(" ", $x) . " - Count: " . count($x) . PHP_EOL;
+        else
+            echo "$ctx: " . implode(" ", array_slice($x, 0, 41)) . " - Count: " . count($x) . PHP_EOL;
     }
 
 }
